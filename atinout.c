@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <getopt.h>
+#include <termios.h>
 
 #define MAX_LINE_LENGTH (4 * 1024)
 static char buf[MAX_LINE_LENGTH];
@@ -39,10 +40,11 @@ static char buf2[MAX_LINE_LENGTH];
 static struct option long_options[] = {
 	{"help", no_argument, NULL, 'h'},
 	{"version", no_argument, NULL, 'V'},
+	{"timeout", required_argument, 0, 't'},
 	{"usage", no_argument, NULL, 0},
 	{NULL, 0, NULL, 0}
 };
-static const char *short_options = "hV";
+static const char *short_options = "hVt";
 
 static void usage(const char * const argv0)
 {
@@ -56,6 +58,7 @@ static void usage(const char * const argv0)
 	printf("\n");
 	printf("\t-h|--help\n");
 	printf("\t-V|--version\n");
+	printf("\t-t|--timeout <sec> (read timeout seconds)\n");
 	printf("\t--usage\n");
 	printf("\n");
 }
@@ -167,6 +170,8 @@ int main(int argc, char *argv[])
 	int res;
 	int option_index = 0;
 	int c;
+	int timeout = 100;
+	struct termios termios;
 
 	while ((c = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1) {
 		switch (c) {
@@ -182,6 +187,9 @@ int main(int argc, char *argv[])
 				       "certain conditions; see http://www.gnu.org/licenses/gpl.html for details.\n");
 				return EXIT_SUCCESS;
 			}
+			break;
+		case 't':
+			timeout = atoi(optarg) * 10;
 			break;
 		case 0:
 			if (strcmp("usage", long_options[option_index].name) == 0) {
@@ -220,6 +228,12 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "fopen(%s) failed: %s\n", MODEM_DEVICE, strerror(errno));
 		return EXIT_FAILURE;
 	}
+
+	tcgetattr(modem->_fileno, &termios);
+	termios.c_lflag &= ~ICANON;
+	termios.c_cc[VTIME] = timeout;
+	termios.c_cc[VMIN] = 0;
+	tcsetattr(modem->_fileno, TCSANOW, &termios);
 
 	if (strcmp(OUTPUT_FILE, "-") == 0) {
 		output = stdout;
