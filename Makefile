@@ -8,32 +8,13 @@ CFLAGS	= -W -Wall -Wextra -Werror \
 	-g
 LDFLAGS =
 
-ifeq "REMOVE_THIS_FOR_RELEASE" "REMOVE_THIS_FOR_RELEASE"
-%.spec: %.spec.in Makefile
-	sed s/@VERSION@/$(VERSION)/g < $@.in > $@
-
-all: atinout atinout.1 atinout.spec
-else
 all: atinout
-endif
 
 atinout: atinout.c
 	$(CC) -o $@ $(CFLAGS) $(LDFLAGS) $^
 
-ifeq "REMOVE_THIS_FOR_RELEASE" "REMOVE_THIS_FOR_RELEASE"
-
-dist:
-	make -f make.dist dist_tar_file
-
-atinout.1 atinout.1.html: atinout.1.ronn
-	ronn $^
-
-clean:
-	rm -f atinout atinout.1 atinout.1.html atinout.spec
-else
 clean:
 	rm -f atinout
-endif
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
